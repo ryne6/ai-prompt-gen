@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
+import type { IpcRendererWithStore } from '../types/window';
 
 export interface GeneratedPrompt {
   id: string;
@@ -63,9 +64,8 @@ export const useAppStore = create<AppState>()(
         set((state) => {
           const newHistory = [newPrompt, ...state.history].slice(0, 100);
           // 同步到其他窗口
-          if (typeof window !== 'undefined' && window.ipcRenderer) {
-            window.ipcRenderer.sendStoreUpdate({ history: newHistory });
-          }
+            const ipc = typeof window !== 'undefined' ? (window.ipcRenderer as unknown as IpcRendererWithStore) : null;
+            ipc?.sendStoreUpdate({ history: newHistory });
           return { history: newHistory };
         });
       },
@@ -80,18 +80,18 @@ export const useAppStore = create<AppState>()(
         set((state) => {
           const updatedSettings = { ...state.settings, ...newSettings };
           // 同步到其他窗口
-          if (typeof window !== 'undefined' && window.ipcRenderer) {
-            window.ipcRenderer.sendStoreUpdate({ settings: updatedSettings });
-          }
+            if (typeof window !== 'undefined') {
+              const ipc = window.ipcRenderer as unknown as IpcRendererWithStore;
+              ipc?.sendStoreUpdate({ settings: updatedSettings });
+            }
           return { settings: updatedSettings };
         });
       },
 
       clearHistory: () => {
         // 同步到其他窗口
-        if (typeof window !== 'undefined' && window.ipcRenderer) {
-          window.ipcRenderer.sendStoreUpdate({ history: [] });
-        }
+        const ipc = typeof window !== 'undefined' ? (window.ipcRenderer as unknown as IpcRendererWithStore) : null;
+        ipc?.sendStoreUpdate({ history: [] });
         set({ history: [] });
       },
 
@@ -99,9 +99,8 @@ export const useAppStore = create<AppState>()(
         set((state) => {
           const newHistory = state.history.filter((item) => item.id !== id);
           // 同步到其他窗口
-          if (typeof window !== 'undefined' && window.ipcRenderer) {
-            window.ipcRenderer.sendStoreUpdate({ history: newHistory });
-          }
+            const ipc = typeof window !== 'undefined' ? (window.ipcRenderer as unknown as IpcRendererWithStore) : null;
+            ipc?.sendStoreUpdate({ history: newHistory });
           return { history: newHistory };
         }),
 
@@ -111,9 +110,8 @@ export const useAppStore = create<AppState>()(
             item.id === id ? { ...item, rating } : item
           );
           // 同步到其他窗口
-          if (typeof window !== 'undefined' && window.ipcRenderer) {
-            window.ipcRenderer.sendStoreUpdate({ history: newHistory });
-          }
+            const ipc = typeof window !== 'undefined' ? (window.ipcRenderer as unknown as IpcRendererWithStore) : null;
+            ipc?.sendStoreUpdate({ history: newHistory });
           return { history: newHistory };
         }),
     }),

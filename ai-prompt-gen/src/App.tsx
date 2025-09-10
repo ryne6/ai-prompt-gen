@@ -2,25 +2,28 @@ import { useEffect } from 'react';
 import GeneratePage from './pages/Generate';
 import ProfilePage from './pages/Profile';
 import { useAppStore } from './store/useAppStore';
+import type { IpcRendererWithStore, StoreUpdate } from './types/window';
 
 function App() {
   const hash = window.location.hash.replace('#', '') || '/';
   const isSettingsPage = hash === '/settings';
 
   const showSettings = () => {
-    window.ipcRenderer?.send('open-settings');
+    const ipc = window.ipcRenderer as unknown as IpcRendererWithStore;
+    ipc?.send('open-settings');
   }
 
   useEffect(() => {
-    if (!window.ipcRenderer) return;
+    const ipc = window.ipcRenderer as unknown as IpcRendererWithStore;
+    if (!ipc) return;
 
     // 监听来自主进程的消息
-    window.ipcRenderer.on('main-process-message', (_event, message) => {
+    ipc.on('main-process-message', (_event: Electron.IpcRendererEvent, message: unknown) => {
       console.log('Received message:', message);
     });
 
     // 监听状态更新
-    window.ipcRenderer.onStoreUpdate((state: any) => {
+    ipc.onStoreUpdate((state: StoreUpdate) => {
       console.log('Received store update:', state);
       if (state.settings) {
         useAppStore.setState((prev) => ({

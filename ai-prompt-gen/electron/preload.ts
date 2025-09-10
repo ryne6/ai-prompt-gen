@@ -1,6 +1,5 @@
-import { ipcRenderer, contextBridge } from 'electron'
+import { contextBridge, ipcRenderer } from 'electron'
 
-// --------- Expose some API to the Renderer process ---------
 contextBridge.exposeInMainWorld('ipcRenderer', {
   on(...args: Parameters<typeof ipcRenderer.on>) {
     const [channel, listener] = args
@@ -18,7 +17,14 @@ contextBridge.exposeInMainWorld('ipcRenderer', {
     const [channel, ...omit] = args
     return ipcRenderer.invoke(channel, ...omit)
   },
-
-  // You can expose other APTs you need here.
-  // ...
+  // 发送状态更新到主进程
+  sendStoreUpdate: (state: unknown) => {
+    console.log('🔄 Sending store update');
+    ipcRenderer.send('store-update', state);
+  },
+  // 监听来自主进程的状态更新
+  onStoreUpdate: (callback: (state: unknown) => void) => {
+    console.log('👂 Setting up store update listener');
+    ipcRenderer.on('store-update', (_event, state) => callback(state));
+  }
 })

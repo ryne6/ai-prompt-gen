@@ -40,21 +40,19 @@ interface AppState {
   ratePrompt: (id: string, rating: number) => void;
 }
 
-const defaultSettings: AppSettings = {
-  apiKey: import.meta.env.VITE_OPENAI_API_KEY || '',
-  generationStyle: 'detailed',
-  language: 'zh',
-  theme: 'light',
-};
-
 export const useAppStore = create<AppState>()(
   persist(
-    (set) => ({
+    (set): AppState => ({
       history: [],
       isGenerating: false,
       currentInput: '',
       currentResult: '',
-      settings: defaultSettings,
+      settings: {
+        apiKey: import.meta.env.VITE_OPENAI_API_KEY || '',
+        generationStyle: 'detailed' as const,
+        language: 'zh',
+        theme: 'light',
+      },
 
       addToHistory: (prompt) => {
         const newPrompt: GeneratedPrompt = {
@@ -62,9 +60,14 @@ export const useAppStore = create<AppState>()(
           id: crypto.randomUUID(),
           timestamp: new Date(),
         };
-        set((state) => ({
-          history: [newPrompt, ...state.history].slice(0, 100), // 最多保存 100 条记录
-        }));
+        set((state) => {
+          const newHistory = [newPrompt, ...state.history].slice(0, 100);
+          // 同步到其他窗口
+          if (typeof window !== 'undefined' && window.ipcRenderer) {
+            window.ipcRenderer.sendStoreUpdate({ history: newHistory });
+          }
+          return { history: newHistory };
+        });
       },
 
       setCurrentInput: (input) => set({ currentInput: input }),
@@ -73,24 +76,46 @@ export const useAppStore = create<AppState>()(
       
       setIsGenerating: (generating) => set({ isGenerating: generating }),
 
-      updateSettings: (newSettings) =>
-        set((state) => ({
-          settings: { ...state.settings, ...newSettings },
-        })),
+      updateSettings: (newSettings) => {
+        set((state) => {
+          const updatedSettings = { ...state.settings, ...newSettings };
+          // 同步到其他窗口
+          if (typeof window !== 'undefined' && window.ipcRenderer) {
+            window.ipcRenderer.sendStoreUpdate({ settings: updatedSettings });
+          }
+          return { settings: updatedSettings };
+        });
+      },
 
-      clearHistory: () => set({ history: [] }),
+      clearHistory: () => {
+        // 同步到其他窗口
+        if (typeof window !== 'undefined' && window.ipcRenderer) {
+          window.ipcRenderer.sendStoreUpdate({ history: [] });
+        }
+        set({ history: [] });
+      },
 
       removeFromHistory: (id) =>
-        set((state) => ({
-          history: state.history.filter((item) => item.id !== id),
-        })),
+        set((state) => {
+          const newHistory = state.history.filter((item) => item.id !== id);
+          // 同步到其他窗口
+          if (typeof window !== 'undefined' && window.ipcRenderer) {
+            window.ipcRenderer.sendStoreUpdate({ history: newHistory });
+          }
+          return { history: newHistory };
+        }),
 
       ratePrompt: (id, rating) =>
-        set((state) => ({
-          history: state.history.map((item) =>
+        set((state) => {
+          const newHistory = state.history.map((item) =>
             item.id === id ? { ...item, rating } : item
-          ),
-        })),
+          );
+          // 同步到其他窗口
+          if (typeof window !== 'undefined' && window.ipcRenderer) {
+            window.ipcRenderer.sendStoreUpdate({ history: newHistory });
+          }
+          return { history: newHistory };
+        }),
     }),
     {
       name: 'ai-prompt-gen-storage',

@@ -25,10 +25,30 @@ export const RENDERER_DIST = path.join(process.env.APP_ROOT, 'dist')
 
 process.env.VITE_PUBLIC = VITE_DEV_SERVER_URL ? path.join(process.env.APP_ROOT, 'public') : RENDERER_DIST
 
-let win: BrowserWindow | null
+let mainWindow: BrowserWindow | null
+let settingsWindow: BrowserWindow | null
+
+// IPC 通信处理
+import { ipcMain } from 'electron'
+
+// 打开设置窗口
+ipcMain.on('open-settings', () => {
+  createSettingsWindow()
+})
+
+// store 更新同步
+ipcMain.on('store-update', (event, settings) => {
+  console.log('🔄 Store update received:', settings);
+  // 从设置窗口收到更新，广播给所有窗口
+  BrowserWindow.getAllWindows().forEach(win => {
+    if (win.webContents !== event.sender) {
+      console.log('📢 Broadcasting to window:', win.id);
+      win.webContents.send('store-update', settings);
+    }
+  });
+});
 
 function getAppIcon(): string | undefined {
-  // Prefer PNG/ICNS for better macOS/Windows support
   const candidates = [
     path.join(process.env.VITE_PUBLIC as string, 'icon.png'),
     path.join(process.env.VITE_PUBLIC as string, 'icon.icns'),
@@ -44,8 +64,8 @@ function getAppIcon(): string | undefined {
   return undefined
 }
 
-function createWindow() {
-  win = new BrowserWindow({
+function createMainWindow() {
+  mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
     minWidth: 800,
@@ -56,22 +76,33 @@ function createWindow() {
       preload: path.join(__dirname, 'preload.mjs'),
       nodeIntegration: false,
       contextIsolation: true,
-      webSecurity: true,
-    },
+        webSecurity: true,
+        devTools: true,
+      },
   })
 
   // Test active push message to Renderer-process.
-  win.webContents.on('did-finish-load', () => {
+  mainWindow.webContents.on('did-finish-load', () => {
+    console.log('🚀 Main window loaded');
     // Ensure title stays consistent even if renderer changes document.title
-    win?.setTitle('AI Prompt Generator')
-    win?.webContents.send('main-process-message', (new Date).toLocaleString())
+    mainWindow?.setTitle('AI Prompt Generator')
+    mainWindow?.webContents.send('main-process-message', (new Date).toLocaleString())
+  })
+
+  mainWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription) => {
+    console.error('❌ Main window failed to load:', errorCode, errorDescription);
+  })
+
+  mainWindow.webContents.on('preload-error', (event, preloadPath, error) => {
+    console.error('❌ Preload script error:', preloadPath, error);
   })
 
   if (VITE_DEV_SERVER_URL) {
-    win.loadURL(VITE_DEV_SERVER_URL)
+    mainWindow.loadURL(`${VITE_DEV_SERVER_URL}#/`)
+    // 开发环境下打开 DevTools
+    mainWindow.webContents.openDevTools()
   } else {
-    // win.loadFile('dist/index.html')
-    win.loadFile(path.join(RENDERER_DIST, 'index.html'))
+    mainWindow.loadFile(path.join(RENDERER_DIST, 'index.html'), { hash: '/' })
   }
 
   // Set dock icon on macOS if a raster icon exists
@@ -82,6 +113,50 @@ function createWindow() {
       if (!img.isEmpty()) app.dock?.setIcon(img)
     }
   }
+
+  mainWindow.on('closed', () => {
+    mainWindow = null
+    if (settingsWindow) {
+      settingsWindow.close()
+      settingsWindow = null
+    }
+  })
+}
+
+function createSettingsWindow() {
+  if (settingsWindow) {
+    settingsWindow.focus()
+    return
+  }
+
+  settingsWindow = new BrowserWindow({
+    width: 800,
+    height: 600,
+    minWidth: 600,
+    minHeight: 500,
+    parent: mainWindow!, // 设置父窗口
+    modal: true, // 模态窗口
+    title: '个人信息设置',
+    frame: true, 
+    icon: getAppIcon(),
+      webPreferences: {
+        preload: path.join(__dirname, 'preload.mjs'),
+        nodeIntegration: false,
+        contextIsolation: true,
+        webSecurity: true,
+        spellcheck: true,
+      },
+  })
+
+  if (VITE_DEV_SERVER_URL) {
+    settingsWindow.loadURL(`${VITE_DEV_SERVER_URL}#/settings`)
+  } else {
+    settingsWindow.loadFile(path.join(RENDERER_DIST, 'index.html'), { hash: '/settings' })
+  }
+
+  settingsWindow.on('closed', () => {
+    settingsWindow = null
+  })
 }
 
 // Quit when all windows are closed, except on macOS. There, it's common
@@ -90,7 +165,6 @@ function createWindow() {
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     app.quit()
-    win = null
   }
 })
 
@@ -98,10 +172,10 @@ app.on('activate', () => {
   // On OS X it's common to re-create a window in the app when the
   // dock icon is clicked and there are no other windows open.
   if (BrowserWindow.getAllWindows().length === 0) {
-    createWindow()
+    createMainWindow()
   }
 })
 
 app.whenReady().then(() => {
-  createWindow()
+  createMainWindow()
 }).catch(console.error)

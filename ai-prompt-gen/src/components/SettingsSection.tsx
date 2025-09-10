@@ -5,7 +5,7 @@ import clsx from 'clsx';
 
 export const SettingsSection: React.FC = () => {
   const { settings, updateSettings, clearHistory } = useAppStore();
-  const [isCollapsed, setIsCollapsed] = useState(true);
+  const [isCollapsed] = useState(false);
   const [showApiKey, setShowApiKey] = useState(false);
   const [tempSettings, setTempSettings] = useState(settings);
   const [saved, setSaved] = useState(false);
@@ -35,13 +35,6 @@ export const SettingsSection: React.FC = () => {
               <p className="text-gray-600">配置你的偏好设置</p>
             </div>
           </div>
-          
-          <button
-            onClick={() => setIsCollapsed(!isCollapsed)}
-            className="btn-secondary"
-          >
-            {isCollapsed ? '展开设置' : '收起设置'}
-          </button>
         </div>
 
         {!isCollapsed && (
@@ -97,7 +90,7 @@ export const SettingsSection: React.FC = () => {
                 </label>
                 <select
                   value={tempSettings.generationStyle}
-                  onChange={(e) => setTempSettings({...tempSettings, generationStyle: e.target.value as any})}
+                  onChange={(e) => setTempSettings({...tempSettings, generationStyle: e.target.value as 'concise' | 'detailed' | 'professional'})}
                   className="input-field"
                 >
                   <option value="concise">简洁型 - 生成简洁明了的提示词</option>
@@ -112,7 +105,7 @@ export const SettingsSection: React.FC = () => {
                 </label>
                 <select
                   value={tempSettings.language}
-                  onChange={(e) => setTempSettings({...tempSettings, language: e.target.value as any})}
+                  onChange={(e) => setTempSettings({...tempSettings, language: e.target.value as 'zh' | 'en'})}
                   className="input-field"
                 >
                   <option value="zh">中文</option>
@@ -131,7 +124,7 @@ export const SettingsSection: React.FC = () => {
                 </label>
                 <select
                   value={tempSettings.theme}
-                  onChange={(e) => setTempSettings({...tempSettings, theme: e.target.value as any})}
+                  onChange={(e) => setTempSettings({...tempSettings, theme: e.target.value as 'light' | 'dark' | 'auto'})}
                   className="input-field"
                 >
                   <option value="light">浅色主题</option>

@@ -81,7 +81,9 @@ export const InputSection: React.FC = () => {
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && e.ctrlKey) {
+    const isCmdOrCtrl = e.ctrlKey || e.metaKey;
+    if (e.key === 'Enter' && isCmdOrCtrl) {
+      e.preventDefault();
       handleGenerate();
     }
   };
@@ -145,7 +147,7 @@ export const InputSection: React.FC = () => {
 
           <div className="flex items-center justify-between">
             <div className="text-sm text-gray-500">
-              {currentInput.length}/500 字符 · 按 Ctrl+Enter 快速生成
+              {currentInput.length}/500 字符 · 按 {typeof navigator !== 'undefined' && /Mac|iPod|iPhone|iPad/.test(navigator.platform) ? '⌘' : 'Ctrl'}+Enter 快速生成
             </div>
             
             <button

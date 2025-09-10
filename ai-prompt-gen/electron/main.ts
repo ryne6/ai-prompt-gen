@@ -89,11 +89,11 @@ function createMainWindow() {
     mainWindow?.webContents.send('main-process-message', (new Date).toLocaleString())
   })
 
-  mainWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription) => {
+  mainWindow.webContents.on('did-fail-load', (_event, errorCode, errorDescription) => {
     console.error('❌ Main window failed to load:', errorCode, errorDescription);
   })
 
-  mainWindow.webContents.on('preload-error', (event, preloadPath, error) => {
+  mainWindow.webContents.on('preload-error', (_event, preloadPath, error) => {
     console.error('❌ Preload script error:', preloadPath, error);
   })
 

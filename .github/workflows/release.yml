@@ -8,6 +8,7 @@ on:
 jobs:
   build:
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
     
     strategy:
       matrix:
@@ -23,15 +24,39 @@ jobs:
         cache: 'npm'
         
     - name: Install dependencies
-      run: npm ci
-      
+      run: |
+        npm ci
+        npm audit fix --force || true
+        
     - name: Build
       run: npm run build
       
-    - name: Release
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ matrix.os }}-build
+        path: release/
+        
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Download all artifacts
+      uses: actions/download-artifact@v4
+      with:
+        path: artifacts
+        
+    - name: Create Release
       uses: softprops/action-gh-release@v1
       with:
-        files: release/**/*
+        files: |
+          artifacts/macos-latest-build/*
+          artifacts/windows-latest-build/*
+          artifacts/ubuntu-latest-build/*
         generate_release_notes: true
+        draft: false
+        prerelease: false
       env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}

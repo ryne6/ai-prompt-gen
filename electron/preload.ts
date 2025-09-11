@@ -29,6 +29,10 @@ const ipc: IpcRendererWithStore = {
     console.log('🔄 Checking for update');
     ipcRenderer.send('update:check');
   },
+  downloadUpdate: () => {
+    console.log('📥 Downloading update');
+    ipcRenderer.send('update:download');
+  },
   installUpdate: () => {
     console.log('📦 Installing update');
     ipcRenderer.send('update:install');

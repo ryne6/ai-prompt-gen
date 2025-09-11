@@ -40,6 +40,10 @@ ipcMain.on('update:check', () => {
   autoUpdater.checkForUpdates()
 })
 
+ipcMain.on('update:download', () => {
+  autoUpdater.downloadUpdate()
+})
+
 ipcMain.on('update:install', () => {
   autoUpdater.quitAndInstall()
 })

@@ -15,6 +15,7 @@ export interface IpcRendererWithStore {
   onStoreUpdate(callback: (state: StoreUpdate) => void): void;
   // 自动更新相关方法
   checkForUpdate(): void;
+  downloadUpdate(): void;
   installUpdate(): void;
   onUpdateChecking(callback: () => void): void;
   onUpdateAvailable(callback: (info: UpdateInfo) => void): void;

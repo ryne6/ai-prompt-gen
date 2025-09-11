@@ -82,7 +82,8 @@ export const UpdateNotification: React.FC = () => {
 
   const handleDownload = () => {
     if (window.ipcRenderer) {
-      (window.ipcRenderer as unknown as IpcRendererWithStore).checkForUpdate();
+      // 触发下载更新
+      (window.ipcRenderer as unknown as IpcRendererWithStore).send('update:download');
     }
   };
 

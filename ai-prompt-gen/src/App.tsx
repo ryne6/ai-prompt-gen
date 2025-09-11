@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import GeneratePage from './pages/Generate';
 import ProfilePage from './pages/Profile';
 import { useAppStore } from './store/useAppStore';
+import { UpdateNotification } from './components/UpdateNotification';
 import type { IpcRendererWithStore, StoreUpdate } from './types/window';
 
 function App() {
@@ -65,6 +66,7 @@ function App() {
       {!isSettingsPage && <Nav />}
       {isSettingsPage ? <ProfilePage /> : <GeneratePage />}
       {!isSettingsPage && <Footer />}
+      <UpdateNotification />
     </div>
   );
 }

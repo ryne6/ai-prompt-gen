@@ -7,6 +7,13 @@
   "directories": {
     "output": "release/${version}"
   },
+  "publish": [
+    {
+      "provider": "github",
+      "owner": "ryne6",
+      "repo": "ai-prompt-gen"
+    }
+  ],
   "files": [
     "dist",
     "dist-electron"
@@ -17,10 +24,9 @@
     ],
     "artifactName": "${productName}-Mac-${version}-Installer.${ext}",
     "identity": null,
-    "hardenedRuntime": true,
+    "hardenedRuntime": false,
     "gatekeeperAssess": false,
-    "entitlements": "build/entitlements.mac.plist",
-    "entitlementsInherit": "build/entitlements.mac.plist"
+    "notarize": false
   },
   "win": {
     "target": [

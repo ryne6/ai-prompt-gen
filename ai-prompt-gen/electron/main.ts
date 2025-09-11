@@ -1,4 +1,5 @@
-import { app, BrowserWindow, nativeImage } from 'electron'
+import { app, BrowserWindow, nativeImage, ipcMain } from 'electron'
+import { autoUpdater } from 'electron-updater'
 // import { createRequire } from 'node:module'
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
@@ -29,11 +30,18 @@ let mainWindow: BrowserWindow | null
 let settingsWindow: BrowserWindow | null
 
 // IPC 通信处理
-import { ipcMain } from 'electron'
-
 // 打开设置窗口
 ipcMain.on('open-settings', () => {
   createSettingsWindow()
+})
+
+// 自动更新相关 IPC
+ipcMain.on('update:check', () => {
+  autoUpdater.checkForUpdates()
+})
+
+ipcMain.on('update:install', () => {
+  autoUpdater.quitAndInstall()
 })
 
 // store 更新同步
@@ -47,6 +55,53 @@ ipcMain.on('store-update', (event, settings) => {
     }
   });
 });
+
+// 设置自动更新
+function setupAutoUpdater(mainWindow: BrowserWindow) {
+  // 开发环境不检查更新
+  if (VITE_DEV_SERVER_URL) {
+    console.log('🔧 Development mode - skipping auto update check');
+    return;
+  }
+
+  autoUpdater.autoDownload = false;
+  autoUpdater.autoInstallOnAppQuit = false;
+
+  autoUpdater.on('checking-for-update', () => {
+    console.log('🔍 Checking for update...');
+    mainWindow.webContents.send('update:checking');
+  });
+
+  autoUpdater.on('update-available', (info) => {
+    console.log('📦 Update available:', info.version);
+    mainWindow.webContents.send('update:available', info);
+  });
+
+  autoUpdater.on('update-not-available', (info) => {
+    console.log('✅ Update not available:', info.version);
+    mainWindow.webContents.send('update:not-available', info);
+  });
+
+  autoUpdater.on('error', (err) => {
+    console.error('❌ Update error:', err);
+    mainWindow.webContents.send('update:error', err.message);
+  });
+
+  autoUpdater.on('download-progress', (progressObj) => {
+    console.log('📥 Download progress:', progressObj.percent);
+    mainWindow.webContents.send('update:progress', progressObj);
+  });
+
+  autoUpdater.on('update-downloaded', (info) => {
+    console.log('✅ Update downloaded:', info.version);
+    mainWindow.webContents.send('update:downloaded', info);
+  });
+
+  // 5秒后检查更新
+  setTimeout(() => {
+    autoUpdater.checkForUpdates();
+  }, 5000);
+}
 
 function getAppIcon(): string | undefined {
   const candidates = [
@@ -87,6 +142,9 @@ function createMainWindow() {
     // Ensure title stays consistent even if renderer changes document.title
     mainWindow?.setTitle('AI Prompt Generator')
     mainWindow?.webContents.send('main-process-message', (new Date).toLocaleString())
+    
+    // 设置自动更新
+    setupAutoUpdater(mainWindow!)
   })
 
   mainWindow.webContents.on('did-fail-load', (_event, errorCode, errorDescription) => {

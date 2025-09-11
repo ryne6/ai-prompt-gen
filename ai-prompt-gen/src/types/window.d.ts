@@ -13,6 +13,15 @@ export interface IpcRendererWithStore {
   invoke<T>(channel: string, ...args: unknown[]): Promise<T>;
   sendStoreUpdate(state: StoreUpdate): void;
   onStoreUpdate(callback: (state: StoreUpdate) => void): void;
+  // 自动更新相关方法
+  checkForUpdate(): void;
+  installUpdate(): void;
+  onUpdateChecking(callback: () => void): void;
+  onUpdateAvailable(callback: (info: UpdateInfo) => void): void;
+  onUpdateNotAvailable(callback: (info: UpdateInfo) => void): void;
+  onUpdateError(callback: (error: string) => void): void;
+  onUpdateProgress(callback: (progress: ProgressInfo) => void): void;
+  onUpdateDownloaded(callback: (info: UpdateInfo) => void): void;
 }
 
 declare global {
